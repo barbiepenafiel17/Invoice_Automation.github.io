@@ -1,11 +1,6 @@
 {
   "trailingSlash": false,
   "cleanUrls": true,
-  "functions": {
-    "api/database.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",

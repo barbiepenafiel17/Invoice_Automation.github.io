@@ -10,59 +10,66 @@ Your Invoice Automation app now supports **Gmail API integration** which allows 
 - ✅ **Free quota**: 250 emails per day with standard Gmail
 - ✅ **No third-party**: Direct integration with Google's servers
 
-## Quick Setup (10 minutes)
+## Quick Setup (5 minutes) ⚡
 
-### Step 1: Create Google Cloud Project
+### Fast Track Setup:
+1. **📋 Copy these templates** for faster configuration
+2. **⚡ Use shortcuts** to speed up Google Cloud setup  
+3. **🔄 Auto-initialization** - configure once, works everywhere
+
+### Step 1: Create Google Cloud Project (1 minute)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click **"Create Project"** or select an existing project
 3. Give your project a name like "Invoice Automation"
 4. Click **"Create"**
 
-### Step 2: Enable Gmail API
+### Step 2: Enable Gmail API (30 seconds)
 
-1. In the Google Cloud Console, go to **"APIs & Services"** → **"Library"**
-2. Search for **"Gmail API"**
-3. Click on it and press **"Enable"**
+1. **Quick link**: [Enable Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com)
+2. Select your project → Click **"Enable"**
+3. ✅ Done in one click!
 
-### Step 3: Create API Credentials
+### Step 3: Create API Credentials (2 minutes)
 
-#### Create API Key:
-1. Go to **"APIs & Services"** → **"Credentials"**
+#### ⚡ Fast API Key Creation:
+1. **Quick link**: [Create API Key](https://console.cloud.google.com/apis/credentials)
 2. Click **"Create Credentials"** → **"API key"**
-3. Copy your API key (starts with `AIzaSy...`)
-4. Click **"Restrict Key"** and select **"Gmail API"** (recommended)
+3. **Copy immediately** (starts with `AIzaSy...`)
+4. **Optional**: Click "Restrict Key" → Select "Gmail API"
 
-#### Create OAuth Client ID:
-1. Still in **"Credentials"**, click **"Create Credentials"** → **"OAuth client ID"**
-2. If prompted, configure the consent screen first (see Step 4)
-3. Choose **"Web application"**
-4. Add your domain to **"Authorized JavaScript origins"**:
-   - For local testing: `http://localhost:8080`
-   - For production: `https://yourdomain.com`
-5. Copy your Client ID (ends with `.apps.googleusercontent.com`)
+#### ⚡ Fast OAuth Client:
+1. Same page → **"Create Credentials"** → **"OAuth client ID"**
+2. Choose **"Web application"**
+3. **Name**: "Invoice Automation"
+4. **Add authorized origins**:
+   ```
+   http://localhost:3000
+   http://localhost:8080
+   https://yourdomain.vercel.app
+   ```
+5. **Copy Client ID** (ends with `.apps.googleusercontent.com`)
 
-### Step 4: Configure OAuth Consent Screen
+### Step 4: Configure OAuth Consent (1 minute)
 
-1. Go to **"APIs & Services"** → **"OAuth consent screen"**
-2. Choose **"External"** (unless you have a Google Workspace)
-3. Fill in the required information:
+1. **Quick link**: [OAuth Consent Screen](https://console.cloud.google.com/apis/credentials/consent)
+2. Choose **"External"** → **"Create"**
+3. **Minimum required fields**:
    - **App name**: "Invoice Automation"
-   - **User support email**: Your email
+   - **User support email**: Your email  
    - **Developer contact**: Your email
-4. Click **"Save and Continue"**
+4. **Click "Save and Continue"** (skip optional fields)
 
-#### Add Scopes:
-1. Click **"Add or Remove Scopes"**
-2. Add this scope: `https://www.googleapis.com/auth/gmail.send`
-3. Click **"Update"** and **"Save and Continue"**
+#### ⚡ Add Gmail Scope (30 seconds):
+1. **"Scopes"** tab → **"Add or Remove Scopes"**
+2. **Search**: `gmail.send` → Select it
+3. **"Update"** → **"Save and Continue"**
 
-#### Add Test Users (for development):
-1. Click **"Add Users"**
-2. Add your Gmail address
-3. Click **"Save and Continue"**
+#### ⚡ Add Test User:
+1. **"Test Users"** → **"Add Users"** → Enter your Gmail
+2. **"Save and Continue"** → **"Back to Dashboard"**
 
-### Step 5: Configure Your Invoice App
+### Step 5: Configure Your App (30 seconds) 🚀
 
 1. In your Invoice Automation app, click **"📧 Send Email"**
 2. When prompted, click **"🚀 Setup Gmail API"**

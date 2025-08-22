@@ -672,7 +672,7 @@ export class InvoiceBuilder {
     }
 
     /**
-     * Handle send via email (Real email delivery)
+     * Handle send via email (Gmail API delivery)
      */
     async handleSendEmail() {
         // Enhanced validation with better error messages
@@ -705,21 +705,35 @@ export class InvoiceBuilder {
         }
 
         try {
-            // Import real email service
-            const { default: realEmailService } = await import('./real-email.js');
+            // Import Gmail API service
+            const { default: gmailAPIService } = await import('./gmail-api.js');
             
-            // Check if service is configured
-            if (!realEmailService.isConfigured()) {
-                toast.warning('Email service not configured. Opening setup guide...');
-                realEmailService.showSetupGuide();
-                return;
+            // Check if Gmail API is configured and user is signed in
+            if (!gmailAPIService.isUserSignedIn()) {
+                const setupChoice = confirm(
+                    'Gmail API is not set up or you\'re not signed in.\n\n' +
+                    'Would you like to:\n' +
+                    '• OK: Set up Gmail API for direct sending\n' +
+                    '• Cancel: Use basic email client (mailto)'
+                );
+                
+                if (setupChoice) {
+                    gmailAPIService.showSetupGuide();
+                    return;
+                } else {
+                    // Fallback to mailto
+                    const { default: emailService } = await import('./email.js');
+                    await emailService.sendInvoiceViaMailto(this.currentInvoice);
+                    toast.info(`Email client opened for ${client.name} (${client.email})`);
+                    return;
+                }
             }
 
             // Show sending indicator
-            const sendingToast = toast.info(`Sending invoice to ${client.name}...`, { duration: 0 });
+            const sendingToast = toast.info(`📧 Sending invoice to ${client.name} via Gmail...`, { duration: 0 });
             
-            // Send the actual email
-            const result = await realEmailService.sendInvoiceEmail(this.currentInvoice, {
+            // Send the actual email via Gmail API
+            const result = await gmailAPIService.sendInvoiceEmail(this.currentInvoice, {
                 subject: `Invoice ${this.currentInvoice.id} - ${new Intl.NumberFormat('en-US', {
                     style: 'currency',
                     currency: store.getSettings().currency || 'PHP'
@@ -730,25 +744,30 @@ export class InvoiceBuilder {
             sendingToast.remove();
 
             if (result.success) {
-                toast.success(`✅ Invoice sent successfully to ${client.email}!`);
+                toast.success(`✅ Invoice sent successfully to ${client.email} via Gmail!`);
                 
-                // Update invoice status or add note about email sent
-                this.updateInvoiceEmailStatus(this.currentInvoice.id, client.email);
+                // Update invoice status with Gmail delivery info
+                this.updateInvoiceEmailStatus(this.currentInvoice.id, client.email, 'invoice');
+                
+                // Show user info
+                const currentUser = gmailAPIService.getCurrentUser();
+                setTimeout(() => {
+                    toast.info(`📬 Email sent from ${currentUser.email} and saved to your Sent folder`);
+                }, 2000);
+                
             } else {
                 throw new Error(result.message || 'Failed to send email');
             }
 
         } catch (error) {
-            console.error('Real email sending failed:', error);
+            console.error('Gmail API sending failed:', error);
             
-            // Fallback to mailto if real email fails
-            toast.error(`Real email failed: ${error.message}`);
-            
+            // Offer fallback options
             const fallbackChoice = confirm(
-                `Failed to send email automatically: ${error.message}\n\n` +
+                `Gmail API failed: ${error.message}\n\n` +
                 'Would you like to:\n' +
-                '• OK: Open email client (mailto) instead\n' +
-                '• Cancel: Setup email service'
+                '• OK: Try basic email client (mailto) instead\n' +
+                '• Cancel: Set up Gmail API again'
             );
             
             if (fallbackChoice) {
@@ -761,9 +780,9 @@ export class InvoiceBuilder {
                     toast.error('Fallback email also failed: ' + mailtoError.message);
                 }
             } else {
-                // Show setup guide
-                const { default: realEmailService } = await import('./real-email.js');
-                realEmailService.showSetupGuide();
+                // Show setup guide again
+                const { default: gmailAPIService } = await import('./gmail-api.js');
+                gmailAPIService.showSetupGuide();
             }
         }
     }
@@ -892,7 +911,7 @@ export class InvoiceBuilder {
     }
 
     /**
-     * Handle send payment reminder (Real email delivery)
+     * Handle send payment reminder (Gmail API delivery)
      */
     async handleSendReminder() {
         if (!this.currentInvoice.id) {
@@ -907,40 +926,59 @@ export class InvoiceBuilder {
         }
 
         try {
-            // Import real email service
-            const { default: realEmailService } = await import('./real-email.js');
+            // Import Gmail API service
+            const { default: gmailAPIService } = await import('./gmail-api.js');
             
-            // Check if service is configured
-            if (!realEmailService.isConfigured()) {
-                toast.warning('Email service not configured. Opening setup guide...');
-                realEmailService.showSetupGuide();
-                return;
+            // Check if Gmail API is configured and user is signed in
+            if (!gmailAPIService.isUserSignedIn()) {
+                const setupChoice = confirm(
+                    'Gmail API is not set up or you\'re not signed in.\n\n' +
+                    'Would you like to set up Gmail API for direct sending?'
+                );
+                
+                if (setupChoice) {
+                    gmailAPIService.showSetupGuide();
+                    return;
+                } else {
+                    // Fallback to mailto
+                    const { default: emailService } = await import('./email.js');
+                    await emailService.sendPaymentReminder(this.currentInvoice);
+                    toast.info(`Email client opened for ${client.name} (${client.email})`);
+                    return;
+                }
             }
 
             // Show sending indicator
-            const sendingToast = toast.info(`Sending payment reminder to ${client.name}...`, { duration: 0 });
+            const sendingToast = toast.info(`💌 Sending payment reminder to ${client.name} via Gmail...`, { duration: 0 });
             
-            // Send the payment reminder
-            const result = await realEmailService.sendPaymentReminder(this.currentInvoice);
+            // Send the payment reminder via Gmail API
+            const result = await gmailAPIService.sendPaymentReminder(this.currentInvoice);
 
             // Remove sending indicator
             sendingToast.remove();
 
             if (result.success) {
-                toast.success(`💌 Payment reminder sent to ${client.email}!`);
+                toast.success(`✅ Payment reminder sent to ${client.email} via Gmail!`);
                 
                 // Update invoice with reminder sent status
                 this.updateInvoiceEmailStatus(this.currentInvoice.id, client.email, 'reminder');
+                
+                // Show user info
+                const currentUser = gmailAPIService.getCurrentUser();
+                setTimeout(() => {
+                    toast.info(`📬 Reminder sent from ${currentUser.email} and saved to your Sent folder`);
+                }, 2000);
+                
             } else {
                 throw new Error(result.message || 'Failed to send reminder');
             }
 
         } catch (error) {
-            console.error('Payment reminder failed:', error);
+            console.error('Gmail API reminder failed:', error);
             
             // Fallback to mailto
             const fallbackChoice = confirm(
-                `Failed to send reminder automatically: ${error.message}\n\n` +
+                `Gmail API failed: ${error.message}\n\n` +
                 'Would you like to open email client (mailto) instead?'
             );
             
@@ -1101,11 +1139,11 @@ export class InvoiceBuilder {
      */
     async handleRealEmailSetup() {
         try {
-            const { default: realEmailService } = await import('./real-email.js');
-            realEmailService.showSetupGuide();
+            const { default: gmailAPIService } = await import('./gmail-api.js');
+            gmailAPIService.showSetupGuide();
         } catch (error) {
-            console.error('Failed to load real email setup:', error);
-            toast.error('Failed to load email setup. Please refresh the page and try again.');
+            console.error('Failed to load Gmail API setup:', error);
+            toast.error('Failed to load Gmail API setup. Please refresh the page and try again.');
         }
     }
 
@@ -1139,16 +1177,16 @@ export class InvoiceBuilder {
                             </div>
                             
                             <div class="option" style="border: 2px solid #007bff; padding: 15px; margin: 15px 0; border-radius: 8px;">
-                                <h4>🚀 NEW: Real Email Delivery (Recommended)</h4>
-                                <p>✅ Automatically sends emails directly to clients' inboxes</p>
-                                <p>✅ No manual steps required</p>
+                                <h4>🚀 NEW: Gmail API Integration (Recommended)</h4>
+                                <p>✅ Send from your own Gmail account</p>
+                                <p>✅ Emails appear in your Gmail Sent folder</p>
                                 <p>✅ Professional email delivery</p>
-                                <p>✅ Email tracking and history</p>
-                                <p>✅ Free tier: 200 emails/month</p>
+                                <p>✅ No third-party dependencies</p>
+                                <p>✅ Free Gmail quotas (250 emails/day)</p>
                                 <br>
-                                <p><strong>Setup required:</strong> 5 minutes to connect your Gmail/Outlook</p>
-                                <button class="btn btn-primary" onclick="window.realEmailSetup(); this.closest('.modal-overlay').remove();">
-                                    🎯 Setup Real Email Delivery
+                                <p><strong>Setup required:</strong> 5 minutes to create Google API credentials</p>
+                                <button class="btn btn-primary" onclick="window.gmailApiSetup(); this.closest('.modal-overlay').remove();">
+                                    🎯 Setup Gmail API
                                 </button>
                             </div>
                             
@@ -1175,8 +1213,8 @@ export class InvoiceBuilder {
                         
                         <div class="help-section">
                             <h4>💡 Recommendation</h4>
-                            <p>For professional businesses, we highly recommend setting up <strong>Real Email Delivery</strong>. 
-                            Your clients will receive invoices directly in their inbox automatically.</p>
+                            <p>For professional businesses, we highly recommend setting up <strong>Gmail API Integration</strong>. 
+                            Your clients will receive invoices directly from your Gmail account, and all emails will be saved in your Sent folder.</p>
                         </div>
                     </div>
                 </div>
@@ -1204,7 +1242,18 @@ const invoiceBuilder = new InvoiceBuilder();
 // Make available globally for event handlers
 window.invoiceBuilder = invoiceBuilder;
 
-// Global function for real email setup
+// Global function for Gmail API setup
+window.gmailApiSetup = async function() {
+    try {
+        const { default: gmailAPIService } = await import('./gmail-api.js');
+        gmailAPIService.showSetupGuide();
+    } catch (error) {
+        console.error('Failed to load Gmail API setup:', error);
+        alert('Failed to load Gmail API setup. Please refresh the page and try again.');
+    }
+};
+
+// Global function for real email setup (EmailJS fallback)
 window.realEmailSetup = async function() {
     try {
         const { default: realEmailService } = await import('./real-email.js');

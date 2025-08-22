@@ -219,24 +219,6 @@
     color: var(--color-black);
 }
 
-.dropdown-item.featured {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
-    font-weight: 600;
-    margin: 4px 8px;
-    border-radius: 6px;
-    text-align: center;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-}
-
-.dropdown-item.featured:hover {
-    background: linear-gradient(135deg, #0056b3, #004085);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
-    color: white;
-}
-
 .dropdown-divider {
     margin: var(--spacing-2) 0;
     border: none;

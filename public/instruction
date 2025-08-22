@@ -1,0 +1,225 @@
+Build a single-page Invoice Automation web app using HTML + CSS (no frameworks) + Vanilla JavaScript. The design must be strictly black & white (grayscale only), minimalist, and visually appealing. No external UI libraries. App runs fully in the browser with localStorage persistence (no backend).
+
+Core Features
+
+Client Management
+
+Add/Edit/Delete clients (name, company, email, phone, address, VAT/TIN).
+
+Search + filter clients by name/company.
+
+Invoice Builder
+
+Auto-generated invoice number (prefix + YYYYMM + incremental counter).
+
+Date pickers (issue date, due date), payment terms selector (Net 7/15/30).
+
+Line items (description, qty, unit price, tax %, discount %, subtotal).
+
+Invoice totals: subtotal, tax, discount, shipping, grand total.
+
+Notes & terms field.
+
+Live preview panel side-by-side.
+
+Automation
+
+Auto-calculation on every change (no “recalculate” button).
+
+Auto-save draft every 3 seconds of inactivity.
+
+Duplicate invoice action.
+
+Recurring template: interval (weekly/monthly/quarterly), next run date (store only).
+
+Reminders: mark as paid/unpaid; show “Due soon” status when due date is within 5 days.
+
+Export & Share
+
+Export to PDF (use html2pdf.js or similar lightweight approach).
+
+Export/Import JSON for backup/restore.
+
+Print-ready stylesheet (A4/Letter).
+
+Dashboard
+
+KPIs (cards): Total Invoices, Unpaid, Overdue, Collected This Month.
+
+Simple table list with sorting (date, client, amount, status) + search.
+
+Accessibility & Offline
+
+Keyboard navigable, visible focus states, aria labels.
+
+Works offline (static assets only).
+
+Tech Constraints
+
+Vanilla JS (modules allowed), no frameworks.
+
+CSS: hand-rolled, BEM or utility classes; grayscale only (no colors).
+
+Use localStorage for data; structure under a single key, e.g. invoiceApp:v1.
+
+Optional library: html2pdf.js for PDF export (include via CDN).
+
+No server code.
+
+Information Architecture / File Structure
+/ (root)
+  index.html
+  /assets/
+    logo.svg (monochrome)
+  /css/
+    base.css        (reset, typography, variables)
+    layout.css      (grid/flex layouts, responsive)
+    components.css  (cards, buttons, inputs, tables, modal)
+    print.css       (print & PDF styles)
+  /js/
+    app.js          (bootstrap, router)
+    store.js        (localStorage CRUD)
+    models.js       (data models, validators)
+    ui.js           (DOM helpers, toasts, modals)
+    invoice.js      (builder logic, calculations)
+    dashboard.js    (stats, list, filters)
+    export.js       (PDF/JSON export & import)
+
+Data Models (JSON)
+{
+  "clients": [
+    { "id": "c_001", "name": "Jane Doe", "company": "Acme Inc.", "email": "jane@acme.com", "phone": "", "address": "", "taxId": "" }
+  ],
+  "invoices": [
+    {
+      "id": "inv_202508-001",
+      "clientId": "c_001",
+      "issueDate": "2025-08-22",
+      "dueDate": "2025-09-21",
+      "terms": "Net 30",
+      "items": [
+        { "id": "it_1", "description": "Design work", "qty": 10, "unitPrice": 50, "taxRate": 12, "discountRate": 0 }
+      ],
+      "shipping": 0,
+      "notes": "Thank you!",
+      "status": "unpaid", // unpaid | paid | overdue
+      "recurring": { "enabled": false, "interval": "monthly", "nextRun": null },
+      "totals": { "subtotal": 0, "tax": 0, "discount": 0, "grand": 0 },
+      "createdAt": 1692662400000,
+      "updatedAt": 1692662400000
+    }
+  ],
+  "settings": {
+    "invoicePrefix": "INV",
+    "currency": "PHP",
+    "numberSeed": 1
+  }
+}
+
+UI/UX Requirements (Black & White Only)
+
+Color palette: white #ffffff, black #000000, grays only (#111, #222, #444, #666, #999, #ddd, #f5f5f5).
+
+Typography: one sans-serif (system font stack). Headings use tighter tracking; body 14–16px with 1.5 line-height.
+
+Layout: two-column grid on desktop:
+
+Left: form (client, items, terms).
+
+Right: live invoice preview (sticky on desktop, full-width on mobile).
+
+Components:
+
+Cards: white background, thin black border (1px), 8–12px radius, soft shadow (grayscale).
+
+Buttons: solid black background, white text; outline variant: 1px black border, white background.
+
+Inputs: white bg, 1px black border, 6px radius, focus ring 2px dashed outline.
+
+Table: zebra stripes with light gray rows; hover elevates row with subtle shadow.
+
+Badges: pill with border only (no fills), text uppercase: UNPAID, PAID, OVERDUE.
+
+Micro-interactions: 150–200ms transitions for hover/focus; no color changes, only elevation/scale/underline.
+
+Icons: monotone SVG strokes only.
+
+Empty States: simple illustration using black strokes; concise copy.
+
+Responsive: single column on < 900px; controls stack; sticky bottom bar for totals/actions.
+
+Pages/Sections
+
+Dashboard: KPIs, table of invoices, quick actions (New invoice, Export JSON, Import JSON).
+
+Invoice Builder: client selector/creator, items editor (add/remove rows), totals, notes, actions (Save, Mark Paid, Duplicate, Export PDF).
+
+Clients: list + modal form.
+
+Settings: currency, invoice prefix, number seed reset (with confirm).
+
+Calculations (exact rules)
+
+Line subtotal = qty * unitPrice.
+
+Line discount = line subtotal * (discountRate/100).
+
+Line taxable base = line subtotal - line discount.
+
+Line tax = taxable base * (taxRate/100).
+
+Invoice subtotal = sum of line subtotals – line discounts.
+
+Invoice tax = sum of line taxes.
+
+Grand total = subtotal + tax + shipping.
+
+Recompute on any input change. Round to 2 decimals.
+
+State & Persistence
+
+Central store.js with methods: getState(), setState(), addClient(), updateClient(), saveInvoice(), markPaid(), duplicateInvoice(), importJSON(), exportJSON().
+
+Debounced auto-save for the current invoice.
+
+Simple in-memory router (?view=dashboard|builder|clients|settings).
+
+PDF/Print
+
+A4 default; 12mm margins.
+
+Hide UI chrome, show branded header (logo.svg, company & client details, table, totals, notes).
+
+Page breaks between long sections; prevent orphaned table rows with page-break-inside: avoid.
+
+Accessibility
+
+All interactive elements keyboard reachable.
+
+Visible focus outlines.
+
+Labels tied to inputs (for/id).
+
+Aria attributes for modals, toasts, and live region for “Auto-saved”.
+
+Nice-to-Haves (if time)
+
+Quick add client inline in builder via modal.
+
+Simple CSV import for clients.
+
+“Copy payment link” stub (no backend; just copies invoice summary text).
+
+Acceptance Criteria
+
+All features above function without errors in latest Chrome/Edge.
+
+No colors beyond grayscale.
+
+Data persists after refresh via localStorage.
+
+PDF export produces a clean, print-ready monochrome invoice.
+
+Lighthouse: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 90.
+
+Codebase organized as per file structure; functions commented where non-obvious.

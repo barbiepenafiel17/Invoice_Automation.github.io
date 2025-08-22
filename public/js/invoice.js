@@ -64,7 +64,6 @@ export class InvoiceBuilder {
         document.getElementById('share-social-btn')?.addEventListener('click', this.handleSocialShare.bind(this));
         document.getElementById('send-reminder-btn')?.addEventListener('click', this.handleSendReminder.bind(this));
         document.getElementById('email-setup-btn')?.addEventListener('click', this.handleEmailSetup.bind(this));
-        document.getElementById('setup-real-email-btn')?.addEventListener('click', this.handleRealEmailSetup.bind(this));
 
         // Dropdown toggle functionality
         document.getElementById('email-options-btn')?.addEventListener('click', this.handleEmailDropdownToggle.bind(this));
@@ -672,7 +671,7 @@ export class InvoiceBuilder {
     }
 
     /**
-     * Handle send via email (Real email delivery)
+     * Handle send via email
      */
     async handleSendEmail() {
         // Enhanced validation with better error messages
@@ -705,91 +704,12 @@ export class InvoiceBuilder {
         }
 
         try {
-            // Import real email service
-            const { default: realEmailService } = await import('./real-email.js');
-            
-            // Check if service is configured
-            if (!realEmailService.isConfigured()) {
-                toast.warning('Email service not configured. Opening setup guide...');
-                realEmailService.showSetupGuide();
-                return;
-            }
-
-            // Show sending indicator
-            const sendingToast = toast.info(`Sending invoice to ${client.name}...`, { duration: 0 });
-            
-            // Send the actual email
-            const result = await realEmailService.sendInvoiceEmail(this.currentInvoice, {
-                subject: `Invoice ${this.currentInvoice.id} - ${new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: store.getSettings().currency || 'PHP'
-                }).format(this.currentInvoice.totals.grand)}`
-            });
-
-            // Remove sending indicator
-            sendingToast.remove();
-
-            if (result.success) {
-                toast.success(`✅ Invoice sent successfully to ${client.email}!`);
-                
-                // Update invoice status or add note about email sent
-                this.updateInvoiceEmailStatus(this.currentInvoice.id, client.email);
-            } else {
-                throw new Error(result.message || 'Failed to send email');
-            }
-
+            const { default: emailService } = await import('./email.js');
+            await emailService.sendInvoiceViaMailto(this.currentInvoice);
+            toast.success(`Email composed for ${client.name} (${client.email})`);
         } catch (error) {
-            console.error('Real email sending failed:', error);
-            
-            // Fallback to mailto if real email fails
-            toast.error(`Real email failed: ${error.message}`);
-            
-            const fallbackChoice = confirm(
-                `Failed to send email automatically: ${error.message}\n\n` +
-                'Would you like to:\n' +
-                '• OK: Open email client (mailto) instead\n' +
-                '• Cancel: Setup email service'
-            );
-            
-            if (fallbackChoice) {
-                // Fallback to mailto
-                try {
-                    const { default: emailService } = await import('./email.js');
-                    await emailService.sendInvoiceViaMailto(this.currentInvoice);
-                    toast.info(`Email client opened for ${client.name} (${client.email})`);
-                } catch (mailtoError) {
-                    toast.error('Fallback email also failed: ' + mailtoError.message);
-                }
-            } else {
-                // Show setup guide
-                const { default: realEmailService } = await import('./real-email.js');
-                realEmailService.showSetupGuide();
-            }
-        }
-    }
-
-    /**
-     * Update invoice with email sent status
-     */
-    updateInvoiceEmailStatus(invoiceId, email, type = 'invoice') {
-        try {
-            const invoice = store.getInvoice(invoiceId);
-            if (invoice) {
-                if (!invoice.emailHistory) {
-                    invoice.emailHistory = [];
-                }
-                
-                invoice.emailHistory.push({
-                    email,
-                    sentAt: new Date().toISOString(),
-                    type
-                });
-                
-                invoice.lastEmailSent = new Date().toISOString();
-                store.saveInvoice(invoice);
-            }
-        } catch (error) {
-            console.warn('Failed to update invoice email status:', error);
+            console.error('Email sending failed:', error);
+            toast.error(error.message || 'Failed to compose email');
         }
     }
 
@@ -892,7 +812,7 @@ export class InvoiceBuilder {
     }
 
     /**
-     * Handle send payment reminder (Real email delivery)
+     * Handle send payment reminder
      */
     async handleSendReminder() {
         if (!this.currentInvoice.id) {
@@ -907,52 +827,12 @@ export class InvoiceBuilder {
         }
 
         try {
-            // Import real email service
-            const { default: realEmailService } = await import('./real-email.js');
-            
-            // Check if service is configured
-            if (!realEmailService.isConfigured()) {
-                toast.warning('Email service not configured. Opening setup guide...');
-                realEmailService.showSetupGuide();
-                return;
-            }
-
-            // Show sending indicator
-            const sendingToast = toast.info(`Sending payment reminder to ${client.name}...`, { duration: 0 });
-            
-            // Send the payment reminder
-            const result = await realEmailService.sendPaymentReminder(this.currentInvoice);
-
-            // Remove sending indicator
-            sendingToast.remove();
-
-            if (result.success) {
-                toast.success(`💌 Payment reminder sent to ${client.email}!`);
-                
-                // Update invoice with reminder sent status
-                this.updateInvoiceEmailStatus(this.currentInvoice.id, client.email, 'reminder');
-            } else {
-                throw new Error(result.message || 'Failed to send reminder');
-            }
-
+            const { default: emailService } = await import('./email.js');
+            await emailService.sendPaymentReminder(this.currentInvoice);
+            toast.success(`Payment reminder composed for ${client.email}`);
         } catch (error) {
             console.error('Payment reminder failed:', error);
-            
-            // Fallback to mailto
-            const fallbackChoice = confirm(
-                `Failed to send reminder automatically: ${error.message}\n\n` +
-                'Would you like to open email client (mailto) instead?'
-            );
-            
-            if (fallbackChoice) {
-                try {
-                    const { default: emailService } = await import('./email.js');
-                    await emailService.sendPaymentReminder(this.currentInvoice);
-                    toast.info(`Email client opened for ${client.name} (${client.email})`);
-                } catch (mailtoError) {
-                    toast.error('Fallback email also failed: ' + mailtoError.message);
-                }
-            }
+            toast.error(error.message || 'Failed to compose reminder');
         }
     }
 
@@ -1097,104 +977,79 @@ export class InvoiceBuilder {
     }
 
     /**
-     * Handle real email setup button
-     */
-    async handleRealEmailSetup() {
-        try {
-            const { default: realEmailService } = await import('./real-email.js');
-            realEmailService.showSetupGuide();
-        } catch (error) {
-            console.error('Failed to load real email setup:', error);
-            toast.error('Failed to load email setup. Please refresh the page and try again.');
-        }
-    }
-
-    /**
      * Handle email setup guide
      */
-    async handleEmailSetup() {
-        try {
-            const { default: realEmailService } = await import('./real-email.js');
-            realEmailService.showSetupGuide();
-        } catch (error) {
-            console.error('Failed to load email setup:', error);
-            
-            // Fallback setup guide
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <div class="modal-header">
-                        <h3>📧 Email Setup Options</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="email-options">
-                            <div class="option">
-                                <h4>📋 Current: Basic Email (Opens Email Client)</h4>
-                                <p>Opens your default email client with pre-composed message. You manually send the email.</p>
-                                <button class="btn btn-outline" onclick="document.getElementById('send-email-btn').click(); this.closest('.modal-overlay').remove();">
-                                    Try Current Method
-                                </button>
+    handleEmailSetup() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3>📧 Email Setup Options</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="email-options">
+                        <div class="option">
+                            <h4>✅ Current: mailto: (Opens Email Client)</h4>
+                            <p>Opens your default email client with pre-composed message. You manually send the email.</p>
+                        </div>
+                        
+                        <div class="option">
+                            <h4>🚀 Upgrade Options for Automatic Sending:</h4>
+                            
+                            <div class="upgrade-option">
+                                <h5>1. EmailJS (Recommended)</h5>
+                                <p>• Automatically sends emails through your Gmail/Outlook</p>
+                                <p>• Free tier: 200 emails/month</p>
+                                <p>• Setup: 5 minutes</p>
+                                <a href="https://www.emailjs.com/" target="_blank" class="btn btn-primary btn-sm">
+                                    Setup EmailJS
+                                </a>
                             </div>
                             
-                            <div class="option" style="border: 2px solid #007bff; padding: 15px; margin: 15px 0; border-radius: 8px;">
-                                <h4>🚀 NEW: Real Email Delivery (Recommended)</h4>
-                                <p>✅ Automatically sends emails directly to clients' inboxes</p>
-                                <p>✅ No manual steps required</p>
-                                <p>✅ Professional email delivery</p>
-                                <p>✅ Email tracking and history</p>
-                                <p>✅ Free tier: 200 emails/month</p>
-                                <br>
-                                <p><strong>Setup required:</strong> 5 minutes to connect your Gmail/Outlook</p>
-                                <button class="btn btn-primary" onclick="window.realEmailSetup(); this.closest('.modal-overlay').remove();">
-                                    🎯 Setup Real Email Delivery
-                                </button>
-                            </div>
-                            
-                            <div class="option">
-                                <h4>📋 Alternative: Copy & Paste Method</h4>
+                            <div class="upgrade-option">
+                                <h5>2. Copy & Paste Method</h5>
                                 <p>• Copy email content to clipboard</p>
                                 <p>• Paste into any email service</p>
                                 <p>• Works everywhere, no setup</p>
-                                <button class="btn btn-secondary" onclick="document.getElementById('copy-email-btn').click(); this.closest('.modal-overlay').remove();">
+                                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('copy-email-btn').click(); this.closest('.modal-overlay').remove();">
                                     Try Copy Method
                                 </button>
                             </div>
                             
-                            <div class="option">
-                                <h4>📱 Mobile: Social Sharing</h4>
+                            <div class="upgrade-option">
+                                <h5>3. Social Sharing</h5>
                                 <p>• Share via WhatsApp, Telegram, SMS</p>
                                 <p>• Mobile-friendly</p>
                                 <p>• No setup required</p>
-                                <button class="btn btn-outline" onclick="document.getElementById('share-social-btn').click(); this.closest('.modal-overlay').remove();">
+                                <button class="btn btn-outline btn-sm" onclick="document.getElementById('share-social-btn').click(); this.closest('.modal-overlay').remove();">
                                     Try Social Share
                                 </button>
                             </div>
                         </div>
-                        
-                        <div class="help-section">
-                            <h4>💡 Recommendation</h4>
-                            <p>For professional businesses, we highly recommend setting up <strong>Real Email Delivery</strong>. 
-                            Your clients will receive invoices directly in their inbox automatically.</p>
-                        </div>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>Need Help?</h4>
+                        <p>The EMAIL_SETUP.md file in your project contains detailed setup instructions for each option.</p>
                     </div>
                 </div>
-            `;
+            </div>
+        `;
 
-            // Add event listeners
-            modal.querySelector('.modal-close').addEventListener('click', () => {
+        // Add event listeners
+        modal.querySelector('.modal-close').addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
                 document.body.removeChild(modal);
-            });
-            
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            });
+            }
+        });
 
-            document.body.appendChild(modal);
-        }
+        document.body.appendChild(modal);
     }
 }
 
@@ -1203,16 +1058,5 @@ const invoiceBuilder = new InvoiceBuilder();
 
 // Make available globally for event handlers
 window.invoiceBuilder = invoiceBuilder;
-
-// Global function for real email setup
-window.realEmailSetup = async function() {
-    try {
-        const { default: realEmailService } = await import('./real-email.js');
-        realEmailService.showSetupGuide();
-    } catch (error) {
-        console.error('Failed to load real email setup:', error);
-        alert('Failed to load email setup. Please refresh the page and try again.');
-    }
-};
 
 export default invoiceBuilder;

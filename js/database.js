@@ -7,7 +7,12 @@ import { toast } from './ui.js';
  */
 export class DatabaseService {
     constructor() {
-        this.baseUrl = window.location.origin + '/php/api';
+        // Use different API endpoints based on environment
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            this.baseUrl = window.location.origin + '/php/api';
+        } else {
+            this.baseUrl = window.location.origin + '/api/database';
+        }
         this.isConnected = false;
         this.connectionStatus = 'disconnected';
     }

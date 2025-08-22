@@ -1,0 +1,325 @@
+/* Print & PDF Styles */
+
+@media print {
+    /* Reset for print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Page setup */
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    /* Hide UI elements */
+    .app-header,
+    .view-header,
+    .view-actions,
+    .card-header,
+    .form-group,
+    .btn,
+    .nav,
+    .modal,
+    .toast-container,
+    .table-actions,
+    .action-btn,
+    .search-box,
+    .empty-state {
+        display: none !important;
+    }
+
+    /* Show only invoice content */
+    body {
+        background: white !important;
+        font-size: 12pt;
+        line-height: 1.4;
+        color: black !important;
+    }
+
+    .main-content {
+        padding: 0 !important;
+    }
+
+    .container {
+        max-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .view {
+        display: block !important;
+    }
+
+    .view:not(.active) {
+        display: none !important;
+    }
+
+    /* Invoice specific print styles */
+    .invoice-preview {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    .preview-card {
+        position: static !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .builder-layout {
+        display: block !important;
+    }
+
+    .builder-form {
+        display: none !important;
+    }
+
+    .builder-preview {
+        position: static !important;
+        width: 100% !important;
+    }
+
+    /* Invoice header */
+    .invoice-header {
+        margin-bottom: 24pt;
+        page-break-after: avoid;
+    }
+
+    .invoice-logo {
+        font-size: 18pt;
+        font-weight: bold;
+    }
+
+    .invoice-number {
+        font-size: 14pt;
+    }
+
+    /* Invoice parties */
+    .invoice-parties {
+        margin-bottom: 24pt;
+        page-break-after: avoid;
+    }
+
+    /* Invoice table */
+    .invoice-items-table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 16pt;
+        page-break-inside: avoid;
+    }
+
+    .invoice-items-table th,
+    .invoice-items-table td {
+        border: 1pt solid black;
+        padding: 6pt;
+        text-align: left;
+    }
+
+    .invoice-items-table th {
+        background: #f5f5f5 !important;
+        font-weight: bold;
+    }
+
+    .invoice-items-table tr {
+        page-break-inside: avoid;
+    }
+
+    /* Invoice totals */
+    .invoice-totals {
+        width: 200pt;
+        margin-left: auto;
+        margin-bottom: 16pt;
+        page-break-inside: avoid;
+    }
+
+    .invoice-totals-row {
+        border-bottom: 1pt solid #ddd;
+        padding: 4pt 0;
+    }
+
+    .invoice-totals-row.grand-total {
+        border-top: 2pt solid black !important;
+        border-bottom: 2pt solid black !important;
+        font-weight: bold;
+        font-size: 14pt;
+    }
+
+    /* Invoice notes */
+    .invoice-notes {
+        border-top: 1pt solid #ddd;
+        margin-top: 16pt;
+        padding-top: 16pt;
+        font-size: 10pt;
+        page-break-inside: avoid;
+    }
+
+    /* Page breaks */
+    .page-break {
+        page-break-before: always;
+    }
+
+    .page-break-avoid {
+        page-break-inside: avoid;
+    }
+
+    /* Typography for print */
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid;
+    }
+
+    p {
+        orphans: 3;
+        widows: 3;
+    }
+
+    /* Logo for print */
+    .logo-img {
+        max-width: 40pt;
+        max-height: 40pt;
+    }
+
+    /* Remove shadows and effects */
+    * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+
+    /* Ensure black text on white background */
+    .card,
+    .invoice-preview,
+    .preview-card {
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* PDF Export specific styles */
+.pdf-export {
+    background: white;
+    padding: 20mm;
+    font-family: 'Arial', sans-serif;
+    font-size: 12pt;
+    line-height: 1.4;
+    color: black;
+}
+
+.pdf-export .invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24pt;
+    border-bottom: 2pt solid black;
+    padding-bottom: 12pt;
+}
+
+.pdf-export .company-info {
+    flex: 1;
+}
+
+.pdf-export .company-name {
+    font-size: 20pt;
+    font-weight: bold;
+    margin-bottom: 8pt;
+}
+
+.pdf-export .invoice-info {
+    text-align: right;
+}
+
+.pdf-export .invoice-title {
+    font-size: 24pt;
+    font-weight: bold;
+    margin-bottom: 4pt;
+}
+
+.pdf-export .invoice-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24pt;
+    margin: 24pt 0;
+}
+
+.pdf-export .bill-to,
+.pdf-export .invoice-meta {
+    padding: 12pt;
+    border: 1pt solid black;
+}
+
+.pdf-export .bill-to h4,
+.pdf-export .invoice-meta h4 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 8pt;
+    border-bottom: 1pt solid #ccc;
+    padding-bottom: 4pt;
+}
+
+.pdf-export .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24pt 0;
+}
+
+.pdf-export .items-table th,
+.pdf-export .items-table td {
+    border: 1pt solid black;
+    padding: 8pt;
+    text-align: left;
+}
+
+.pdf-export .items-table th {
+    background: #f0f0f0;
+    font-weight: bold;
+}
+
+.pdf-export .items-table .text-right {
+    text-align: right;
+}
+
+.pdf-export .totals-section {
+    margin-top: 24pt;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.pdf-export .totals-table {
+    width: 300pt;
+    border-collapse: collapse;
+}
+
+.pdf-export .totals-table td {
+    padding: 6pt 12pt;
+    border-bottom: 1pt solid #ddd;
+}
+
+.pdf-export .totals-table .total-row td {
+    border-top: 2pt solid black;
+    border-bottom: 2pt solid black;
+    font-weight: bold;
+    font-size: 14pt;
+    background: #f0f0f0;
+}
+
+.pdf-export .notes-section {
+    margin-top: 24pt;
+    border-top: 1pt solid #ddd;
+    padding-top: 12pt;
+}
+
+.pdf-export .notes-title {
+    font-weight: bold;
+    margin-bottom: 8pt;
+}
+
+.pdf-export .footer {
+    margin-top: 24pt;
+    text-align: center;
+    font-size: 10pt;
+    color: #666;
+    border-top: 1pt solid #ddd;
+    padding-top: 12pt;
+}

@@ -25,7 +25,12 @@
     "url": "https://github.com/yourusername/invoice-automation.git"
   },
   "devDependencies": {
-    "vercel": "^32.0.0"
+    "vercel": "^46.0.2"
+  },
+  "overrides": {
+    "esbuild": "^0.25.9",
+    "path-to-regexp": "^6.3.0",
+    "undici": "^6.0.0"
   },
   "engines": {
     "node": ">=16.0.0"

@@ -64,6 +64,7 @@ export class InvoiceBuilder {
         document.getElementById('share-social-btn')?.addEventListener('click', this.handleSocialShare.bind(this));
         document.getElementById('send-reminder-btn')?.addEventListener('click', this.handleSendReminder.bind(this));
         document.getElementById('email-setup-btn')?.addEventListener('click', this.handleEmailSetup.bind(this));
+        document.getElementById('setup-real-email-btn')?.addEventListener('click', this.handleRealEmailSetup.bind(this));
 
         // Dropdown toggle functionality
         document.getElementById('email-options-btn')?.addEventListener('click', this.handleEmailDropdownToggle.bind(this));
@@ -671,7 +672,7 @@ export class InvoiceBuilder {
     }
 
     /**
-     * Handle send via email
+     * Handle send via email (Gmail API delivery)
      */
     async handleSendEmail() {
         // Enhanced validation with better error messages
@@ -704,12 +705,110 @@ export class InvoiceBuilder {
         }
 
         try {
-            const { default: emailService } = await import('./email.js');
-            await emailService.sendInvoiceViaMailto(this.currentInvoice);
-            toast.success(`Email composed for ${client.name} (${client.email})`);
+            // Import Gmail API service
+            const { default: gmailAPIService } = await import('./gmail-api.js');
+            
+            // Check if Gmail API is configured and user is signed in
+            if (!gmailAPIService.isUserSignedIn()) {
+                const setupChoice = confirm(
+                    'Gmail API is not set up or you\'re not signed in.\n\n' +
+                    'Would you like to:\n' +
+                    '• OK: Set up Gmail API for direct sending\n' +
+                    '• Cancel: Use basic email client (mailto)'
+                );
+                
+                if (setupChoice) {
+                    gmailAPIService.showSetupGuide();
+                    return;
+                } else {
+                    // Fallback to mailto
+                    const { default: emailService } = await import('./email.js');
+                    await emailService.sendInvoiceViaMailto(this.currentInvoice);
+                    toast.info(`Email client opened for ${client.name} (${client.email})`);
+                    return;
+                }
+            }
+
+            // Show sending indicator
+            const sendingToast = toast.info(`📧 Sending invoice to ${client.name} via Gmail...`, { duration: 0 });
+            
+            // Send the actual email via Gmail API
+            const result = await gmailAPIService.sendInvoiceEmail(this.currentInvoice, {
+                subject: `Invoice ${this.currentInvoice.id} - ${new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: store.getSettings().currency || 'PHP'
+                }).format(this.currentInvoice.totals.grand)}`
+            });
+
+            // Remove sending indicator
+            sendingToast.remove();
+
+            if (result.success) {
+                toast.success(`✅ Invoice sent successfully to ${client.email} via Gmail!`);
+                
+                // Update invoice status with Gmail delivery info
+                this.updateInvoiceEmailStatus(this.currentInvoice.id, client.email, 'invoice');
+                
+                // Show user info
+                const currentUser = gmailAPIService.getCurrentUser();
+                setTimeout(() => {
+                    toast.info(`📬 Email sent from ${currentUser.email} and saved to your Sent folder`);
+                }, 2000);
+                
+            } else {
+                throw new Error(result.message || 'Failed to send email');
+            }
+
         } catch (error) {
-            console.error('Email sending failed:', error);
-            toast.error(error.message || 'Failed to compose email');
+            console.error('Gmail API sending failed:', error);
+            
+            // Offer fallback options
+            const fallbackChoice = confirm(
+                `Gmail API failed: ${error.message}\n\n` +
+                'Would you like to:\n' +
+                '• OK: Try basic email client (mailto) instead\n' +
+                '• Cancel: Set up Gmail API again'
+            );
+            
+            if (fallbackChoice) {
+                // Fallback to mailto
+                try {
+                    const { default: emailService } = await import('./email.js');
+                    await emailService.sendInvoiceViaMailto(this.currentInvoice);
+                    toast.info(`Email client opened for ${client.name} (${client.email})`);
+                } catch (mailtoError) {
+                    toast.error('Fallback email also failed: ' + mailtoError.message);
+                }
+            } else {
+                // Show setup guide again
+                const { default: gmailAPIService } = await import('./gmail-api.js');
+                gmailAPIService.showSetupGuide();
+            }
+        }
+    }
+
+    /**
+     * Update invoice with email sent status
+     */
+    updateInvoiceEmailStatus(invoiceId, email, type = 'invoice') {
+        try {
+            const invoice = store.getInvoice(invoiceId);
+            if (invoice) {
+                if (!invoice.emailHistory) {
+                    invoice.emailHistory = [];
+                }
+                
+                invoice.emailHistory.push({
+                    email,
+                    sentAt: new Date().toISOString(),
+                    type
+                });
+                
+                invoice.lastEmailSent = new Date().toISOString();
+                store.saveInvoice(invoice);
+            }
+        } catch (error) {
+            console.warn('Failed to update invoice email status:', error);
         }
     }
 
@@ -802,17 +901,53 @@ export class InvoiceBuilder {
         }
 
         try {
-            const { default: emailService } = await import('./email.js');
-            await emailService.sendInvoiceWithAttachment(this.currentInvoice);
-            toast.success('PDF downloaded and email composed');
+            toast.info('Generating PDF from live preview...');
+            
+            // Generate PDF blob from the current live preview
+            const { generatePDFBlob } = await import('./export.js');
+            const pdfBlob = await generatePDFBlob();
+            
+            // Download the PDF
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Invoice_${this.currentInvoice.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Create mailto link with invoice details
+            const subject = encodeURIComponent(`Invoice ${this.currentInvoice.id} from ${store.getSettings().companyName || 'Your Company'}`);
+            const body = encodeURIComponent(`Dear ${client.name},
+
+Please find attached Invoice ${this.currentInvoice.id} for ${this.currentInvoice.formatCurrency(this.currentInvoice.totals.grand)}.
+
+Invoice Details:
+- Invoice Number: ${this.currentInvoice.id}
+- Issue Date: ${this.formatDate(this.currentInvoice.issueDate)}
+- Due Date: ${this.formatDate(this.currentInvoice.dueDate)}
+- Amount: ${this.currentInvoice.formatCurrency(this.currentInvoice.totals.grand)}
+
+Please attach the downloaded PDF file to your email.
+
+Thank you for your business!
+
+Best regards,
+${store.getSettings().companyName || 'Your Company'}`);
+            
+            const mailtoLink = `mailto:${client.email}?subject=${subject}&body=${body}`;
+            window.open(mailtoLink);
+            
+            toast.success('PDF downloaded and email client opened');
         } catch (error) {
-            console.error('Email with attachment failed:', error);
-            toast.error(error.message || 'Failed to send with attachment');
+            console.error('Send with attachment failed:', error);
+            toast.error(error.message || 'Failed to generate PDF attachment');
         }
     }
 
     /**
-     * Handle send payment reminder
+     * Handle send payment reminder (Gmail API delivery)
      */
     async handleSendReminder() {
         if (!this.currentInvoice.id) {
@@ -827,12 +962,71 @@ export class InvoiceBuilder {
         }
 
         try {
-            const { default: emailService } = await import('./email.js');
-            await emailService.sendPaymentReminder(this.currentInvoice);
-            toast.success(`Payment reminder composed for ${client.email}`);
+            // Import Gmail API service
+            const { default: gmailAPIService } = await import('./gmail-api.js');
+            
+            // Check if Gmail API is configured and user is signed in
+            if (!gmailAPIService.isUserSignedIn()) {
+                const setupChoice = confirm(
+                    'Gmail API is not set up or you\'re not signed in.\n\n' +
+                    'Would you like to set up Gmail API for direct sending?'
+                );
+                
+                if (setupChoice) {
+                    gmailAPIService.showSetupGuide();
+                    return;
+                } else {
+                    // Fallback to mailto
+                    const { default: emailService } = await import('./email.js');
+                    await emailService.sendPaymentReminder(this.currentInvoice);
+                    toast.info(`Email client opened for ${client.name} (${client.email})`);
+                    return;
+                }
+            }
+
+            // Show sending indicator
+            const sendingToast = toast.info(`💌 Sending payment reminder to ${client.name} via Gmail...`, { duration: 0 });
+            
+            // Send the payment reminder via Gmail API
+            const result = await gmailAPIService.sendPaymentReminder(this.currentInvoice);
+
+            // Remove sending indicator
+            sendingToast.remove();
+
+            if (result.success) {
+                toast.success(`✅ Payment reminder sent to ${client.email} via Gmail!`);
+                
+                // Update invoice with reminder sent status
+                this.updateInvoiceEmailStatus(this.currentInvoice.id, client.email, 'reminder');
+                
+                // Show user info
+                const currentUser = gmailAPIService.getCurrentUser();
+                setTimeout(() => {
+                    toast.info(`📬 Reminder sent from ${currentUser.email} and saved to your Sent folder`);
+                }, 2000);
+                
+            } else {
+                throw new Error(result.message || 'Failed to send reminder');
+            }
+
         } catch (error) {
-            console.error('Payment reminder failed:', error);
-            toast.error(error.message || 'Failed to compose reminder');
+            console.error('Gmail API reminder failed:', error);
+            
+            // Fallback to mailto
+            const fallbackChoice = confirm(
+                `Gmail API failed: ${error.message}\n\n` +
+                'Would you like to open email client (mailto) instead?'
+            );
+            
+            if (fallbackChoice) {
+                try {
+                    const { default: emailService } = await import('./email.js');
+                    await emailService.sendPaymentReminder(this.currentInvoice);
+                    toast.info(`Email client opened for ${client.name} (${client.email})`);
+                } catch (mailtoError) {
+                    toast.error('Fallback email also failed: ' + mailtoError.message);
+                }
+            }
         }
     }
 
@@ -977,79 +1171,104 @@ export class InvoiceBuilder {
     }
 
     /**
+     * Handle real email setup button
+     */
+    async handleRealEmailSetup() {
+        try {
+            const { default: gmailAPIService } = await import('./gmail-api.js');
+            gmailAPIService.showSetupGuide();
+        } catch (error) {
+            console.error('Failed to load Gmail API setup:', error);
+            toast.error('Failed to load Gmail API setup. Please refresh the page and try again.');
+        }
+    }
+
+    /**
      * Handle email setup guide
      */
-    handleEmailSetup() {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 600px;">
-                <div class="modal-header">
-                    <h3>📧 Email Setup Options</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="email-options">
-                        <div class="option">
-                            <h4>✅ Current: mailto: (Opens Email Client)</h4>
-                            <p>Opens your default email client with pre-composed message. You manually send the email.</p>
-                        </div>
-                        
-                        <div class="option">
-                            <h4>🚀 Upgrade Options for Automatic Sending:</h4>
-                            
-                            <div class="upgrade-option">
-                                <h5>1. EmailJS (Recommended)</h5>
-                                <p>• Automatically sends emails through your Gmail/Outlook</p>
-                                <p>• Free tier: 200 emails/month</p>
-                                <p>• Setup: 5 minutes</p>
-                                <a href="https://www.emailjs.com/" target="_blank" class="btn btn-primary btn-sm">
-                                    Setup EmailJS
-                                </a>
+    async handleEmailSetup() {
+        try {
+            const { default: realEmailService } = await import('./real-email.js');
+            realEmailService.showSetupGuide();
+        } catch (error) {
+            console.error('Failed to load email setup:', error);
+            
+            // Fallback setup guide
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3>📧 Email Setup Options</h3>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="email-options">
+                            <div class="option">
+                                <h4>📋 Current: Basic Email (Opens Email Client)</h4>
+                                <p>Opens your default email client with pre-composed message. You manually send the email.</p>
+                                <button class="btn btn-outline" onclick="document.getElementById('send-email-btn').click(); this.closest('.modal-overlay').remove();">
+                                    Try Current Method
+                                </button>
                             </div>
                             
-                            <div class="upgrade-option">
-                                <h5>2. Copy & Paste Method</h5>
+                            <div class="option" style="border: 2px solid #007bff; padding: 15px; margin: 15px 0; border-radius: 8px;">
+                                <h4>🚀 NEW: Gmail API Integration (Recommended)</h4>
+                                <p>✅ Send from your own Gmail account</p>
+                                <p>✅ Emails appear in your Gmail Sent folder</p>
+                                <p>✅ Professional email delivery</p>
+                                <p>✅ No third-party dependencies</p>
+                                <p>✅ Free Gmail quotas (250 emails/day)</p>
+                                <br>
+                                <p><strong>Setup required:</strong> 5 minutes to create Google API credentials</p>
+                                <button class="btn btn-primary" onclick="window.gmailApiSetup(); this.closest('.modal-overlay').remove();">
+                                    🎯 Setup Gmail API
+                                </button>
+                            </div>
+                            
+                            <div class="option">
+                                <h4>📋 Alternative: Copy & Paste Method</h4>
                                 <p>• Copy email content to clipboard</p>
                                 <p>• Paste into any email service</p>
                                 <p>• Works everywhere, no setup</p>
-                                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('copy-email-btn').click(); this.closest('.modal-overlay').remove();">
+                                <button class="btn btn-secondary" onclick="document.getElementById('copy-email-btn').click(); this.closest('.modal-overlay').remove();">
                                     Try Copy Method
                                 </button>
                             </div>
                             
-                            <div class="upgrade-option">
-                                <h5>3. Social Sharing</h5>
+                            <div class="option">
+                                <h4>📱 Mobile: Social Sharing</h4>
                                 <p>• Share via WhatsApp, Telegram, SMS</p>
                                 <p>• Mobile-friendly</p>
                                 <p>• No setup required</p>
-                                <button class="btn btn-outline btn-sm" onclick="document.getElementById('share-social-btn').click(); this.closest('.modal-overlay').remove();">
+                                <button class="btn btn-outline" onclick="document.getElementById('share-social-btn').click(); this.closest('.modal-overlay').remove();">
                                     Try Social Share
                                 </button>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="help-section">
-                        <h4>Need Help?</h4>
-                        <p>The EMAIL_SETUP.md file in your project contains detailed setup instructions for each option.</p>
+                        
+                        <div class="help-section">
+                            <h4>💡 Recommendation</h4>
+                            <p>For professional businesses, we highly recommend setting up <strong>Gmail API Integration</strong>. 
+                            Your clients will receive invoices directly from your Gmail account, and all emails will be saved in your Sent folder.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
 
-        // Add event listeners
-        modal.querySelector('.modal-close').addEventListener('click', () => {
-            document.body.removeChild(modal);
-        });
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
+            // Add event listeners
+            modal.querySelector('.modal-close').addEventListener('click', () => {
                 document.body.removeChild(modal);
-            }
-        });
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
 
-        document.body.appendChild(modal);
+            document.body.appendChild(modal);
+        }
     }
 }
 
@@ -1058,5 +1277,27 @@ const invoiceBuilder = new InvoiceBuilder();
 
 // Make available globally for event handlers
 window.invoiceBuilder = invoiceBuilder;
+
+// Global function for Gmail API setup
+window.gmailApiSetup = async function() {
+    try {
+        const { default: gmailAPIService } = await import('./gmail-api.js');
+        gmailAPIService.showSetupGuide();
+    } catch (error) {
+        console.error('Failed to load Gmail API setup:', error);
+        alert('Failed to load Gmail API setup. Please refresh the page and try again.');
+    }
+};
+
+// Global function for real email setup (EmailJS fallback)
+window.realEmailSetup = async function() {
+    try {
+        const { default: realEmailService } = await import('./real-email.js');
+        realEmailService.showSetupGuide();
+    } catch (error) {
+        console.error('Failed to load real email setup:', error);
+        alert('Failed to load email setup. Please refresh the page and try again.');
+    }
+};
 
 export default invoiceBuilder;

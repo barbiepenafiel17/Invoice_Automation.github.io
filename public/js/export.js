@@ -3,7 +3,7 @@ import { CurrencyFormatter, DateUtils } from './ui.js';
 import store from './store.js';
 
 /**
- * Export invoice to PDF using html2pdf
+ * Export invoice to PDF using html2pdf with live preview format
  * @param {Object} invoice - Invoice object to export
  * @returns {Promise} Export promise
  */
@@ -11,7 +11,6 @@ export async function exportToPDF(invoice) {
     try {
         // Check if html2pdf is available
         if (!window.html2pdf) {
-            // Try to wait for it to load
             await waitForHtml2pdf();
         }
         
@@ -19,27 +18,50 @@ export async function exportToPDF(invoice) {
             throw new Error('html2pdf library not available. Please refresh the page and try again.');
         }
         
-        const client = store.getClient(invoice.clientId);
-        const settings = store.getSettings();
-        const currencyFormatter = new CurrencyFormatter(settings.currency);
+        // Get the live preview content
+        const previewElement = document.getElementById('invoice-preview');
+        if (!previewElement) {
+            throw new Error('Invoice preview not found. Please make sure you are on the invoice builder page.');
+        }
         
-        // Create PDF content
-        const pdfContent = createPDFContent(invoice, client, settings, currencyFormatter);
+        // Clone the preview content for PDF generation
+        const pdfContainer = previewElement.cloneNode(true);
+        
+        // Apply PDF-specific styling
+        pdfContainer.style.cssText = `
+            background: white;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: black;
+            width: 210mm;
+            min-height: 297mm;
+            box-sizing: border-box;
+        `;
+        
+        // Enhance styles for better PDF rendering
+        const styles = document.createElement('style');
+        styles.textContent = getPDFStyles();
+        pdfContainer.appendChild(styles);
         
         // Configure PDF options
         const opt = {
             margin: [10, 10, 10, 10], // 10mm margins
-            filename: `Invoice_${invoice.id}.pdf`,
+            filename: `Invoice_${invoice.id || 'Draft'}.pdf`,
             image: { 
                 type: 'jpeg', 
-                quality: 0.95 
+                quality: 0.98 
             },
             html2canvas: { 
-                scale: 1.5,
+                scale: 2,
                 useCORS: true,
                 letterRendering: true,
                 allowTaint: false,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: 794, // A4 width in pixels at 96 DPI
+                height: 1123 // A4 height in pixels at 96 DPI
             },
             jsPDF: { 
                 unit: 'mm', 
@@ -50,26 +72,22 @@ export async function exportToPDF(invoice) {
             }
         };
         
-        // Create temporary container
-        const container = document.createElement('div');
-        container.innerHTML = pdfContent;
-        container.className = 'pdf-export';
-        container.style.cssText = `
+        // Create temporary container for PDF generation
+        const tempContainer = document.createElement('div');
+        tempContainer.appendChild(pdfContainer);
+        tempContainer.style.cssText = `
             position: absolute;
             left: -9999px;
             top: 0;
             width: 210mm;
             background: white;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            line-height: 1.4;
         `;
         
-        document.body.appendChild(container);
+        document.body.appendChild(tempContainer);
         
         try {
-            // Generate PDF with error handling
-            const pdfGenerator = html2pdf().set(opt).from(container);
+            // Generate PDF
+            const pdfGenerator = html2pdf().set(opt).from(pdfContainer);
             await pdfGenerator.save();
             return true;
         } catch (pdfError) {
@@ -77,8 +95,8 @@ export async function exportToPDF(invoice) {
             throw new Error('Failed to generate PDF. Please try again or use the print option.');
         } finally {
             // Clean up
-            if (container.parentNode) {
-                document.body.removeChild(container);
+            if (tempContainer.parentNode) {
+                document.body.removeChild(tempContainer);
             }
         }
     } catch (error) {
@@ -479,6 +497,247 @@ export function printInvoice(invoice) {
     }, 250);
 }
 
+/**
+ * Generate PDF blob from the current live preview
+ * @returns {Promise<Blob>} PDF blob for attachment or download
+ */
+export async function generatePDFBlob() {
+    try {
+        // Check if html2pdf is available
+        if (!window.html2pdf) {
+            await waitForHtml2pdf();
+        }
+        
+        if (!window.html2pdf) {
+            throw new Error('html2pdf library not available. Please refresh the page and try again.');
+        }
+        
+        // Get the live preview content
+        const previewElement = document.getElementById('invoice-preview');
+        if (!previewElement) {
+            throw new Error('Invoice preview not found. Please make sure you are on the invoice builder page.');
+        }
+        
+        // Clone the preview content
+        const pdfContainer = previewElement.cloneNode(true);
+        
+        // Apply PDF-specific styling
+        pdfContainer.style.cssText = `
+            background: white;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: black;
+            width: 210mm;
+            min-height: 297mm;
+            box-sizing: border-box;
+        `;
+        
+        // Add PDF styles
+        const styles = document.createElement('style');
+        styles.textContent = getPDFStyles();
+        pdfContainer.appendChild(styles);
+        
+        // Configure PDF options for blob generation
+        const opt = {
+            margin: [10, 10, 10, 10],
+            image: { 
+                type: 'jpeg', 
+                quality: 0.98 
+            },
+            html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                letterRendering: true,
+                allowTaint: false,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: 794,
+                height: 1123
+            },
+            jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait'
+            }
+        };
+        
+        // Create temporary container
+        const tempContainer = document.createElement('div');
+        tempContainer.appendChild(pdfContainer);
+        tempContainer.style.cssText = `
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 210mm;
+            background: white;
+        `;
+        
+        document.body.appendChild(tempContainer);
+        
+        try {
+            // Generate PDF blob
+            const pdfGenerator = html2pdf().set(opt).from(pdfContainer);
+            const pdfBlob = await pdfGenerator.output('blob');
+            return pdfBlob;
+        } finally {
+            // Clean up
+            if (tempContainer.parentNode) {
+                document.body.removeChild(tempContainer);
+            }
+        }
+    } catch (error) {
+        console.error('PDF blob generation error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get PDF-specific styles to enhance the preview for PDF generation
+ * @returns {string} CSS styles for PDF
+ */
+function getPDFStyles() {
+    return `
+        /* PDF-specific styles */
+        * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        
+        .invoice-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            margin-bottom: 24px !important;
+            padding-bottom: 16px !important;
+            border-bottom: 2px solid #000 !important;
+        }
+        
+        .invoice-logo {
+            font-size: 28px !important;
+            font-weight: bold !important;
+            color: #000 !important;
+        }
+        
+        .invoice-number {
+            text-align: right !important;
+            font-size: 14px !important;
+        }
+        
+        .invoice-parties {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin: 24px 0 !important;
+            gap: 24px !important;
+        }
+        
+        .bill-to,
+        .invoice-meta {
+            flex: 1 !important;
+            padding: 16px !important;
+            border: 1px solid #ccc !important;
+            background: #f9f9f9 !important;
+        }
+        
+        .bill-to h4,
+        .invoice-meta h4 {
+            margin: 0 0 12px 0 !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            color: #000 !important;
+            border-bottom: 1px solid #ccc !important;
+            padding-bottom: 8px !important;
+        }
+        
+        .items-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin: 24px 0 !important;
+            border: 1px solid #000 !important;
+        }
+        
+        .items-table th,
+        .items-table td {
+            border: 1px solid #000 !important;
+            padding: 12px 8px !important;
+            text-align: left !important;
+            font-size: 12px !important;
+        }
+        
+        .items-table th {
+            background-color: #f0f0f0 !important;
+            font-weight: bold !important;
+            color: #000 !important;
+        }
+        
+        .items-table .text-right {
+            text-align: right !important;
+        }
+        
+        .invoice-totals {
+            display: flex !important;
+            justify-content: flex-end !important;
+            margin-top: 24px !important;
+        }
+        
+        .totals-table {
+            width: 300px !important;
+            border-collapse: collapse !important;
+        }
+        
+        .totals-table td {
+            padding: 8px 16px !important;
+            border-bottom: 1px solid #ddd !important;
+            font-size: 14px !important;
+        }
+        
+        .totals-table .total-row td {
+            border-top: 2px solid #000 !important;
+            border-bottom: 2px solid #000 !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+            background-color: #f0f0f0 !important;
+            color: #000 !important;
+        }
+        
+        .invoice-notes {
+            margin-top: 24px !important;
+            padding: 16px !important;
+            border: 1px solid #ccc !important;
+            background: #f9f9f9 !important;
+            font-size: 12px !important;
+        }
+        
+        /* Hide any interactive elements */
+        button,
+        input,
+        select,
+        textarea,
+        .btn,
+        .dropdown,
+        .modal {
+            display: none !important;
+        }
+        
+        /* Ensure text is black for PDF */
+        * {
+            color: #000 !important;
+        }
+        
+        /* Make sure tables are visible */
+        table {
+            page-break-inside: avoid !important;
+        }
+        
+        /* Improve spacing */
+        .invoice-preview {
+            background: white !important;
+            color: black !important;
+        }
+    `;
+}
 /**
  * Get print styles
  * @returns {string} CSS styles for printing

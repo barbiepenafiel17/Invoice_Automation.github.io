@@ -3,6 +3,7 @@ import store from './store.js';
 import { toast, Modal } from './ui.js';
 import invoiceBuilder from './invoice.js';
 import dashboard from './dashboard.js';
+import databaseService from './database.js';
 import { Client, Settings, FormValidator } from './models.js';
 
 class App {
@@ -76,6 +77,11 @@ class App {
         // Settings form
         document.getElementById('save-settings-btn')?.addEventListener('click', this.handleSaveSettings.bind(this));
         document.getElementById('reset-seed-btn')?.addEventListener('click', this.handleResetSeed.bind(this));
+        
+        // Database
+        document.getElementById('database-btn')?.addEventListener('click', () => {
+            databaseService.showSetupModal();
+        });
 
         // Browser navigation
         window.addEventListener('popstate', () => {

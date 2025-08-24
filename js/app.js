@@ -512,6 +512,38 @@ class App {
     }
 }
 
+// --- Export Recent Invoices Table to Excel ---
+function exportRecentInvoicesToExcel() {
+    const table = document.getElementById('invoices-table');
+    if (!table) {
+        alert('No invoices table found!');
+        return;
+    }
+    // Get headers
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+    // Get visible rows
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const data = [headers];
+    rows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
+        data.push(cells);
+    });
+    // Use SheetJS to create a worksheet and workbook
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Recent Invoices');
+    // Export to .xlsx file
+    XLSX.writeFile(wb, 'Recent_Invoices.xlsx');
+}
+
+// Attach to Export Excel button
+window.addEventListener('DOMContentLoaded', () => {
+    const exportExcelBtn = document.getElementById('export-json-btn');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', exportRecentInvoicesToExcel);
+    }
+});
+
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     try {

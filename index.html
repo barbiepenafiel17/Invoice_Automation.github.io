@@ -4,40 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Automation</title>
-    <!-- Primary CSS Files -->
-    <link rel="stylesheet" href="/css/base.css">
-    <link rel="stylesheet" href="/css/layout.css">
-    <link rel="stylesheet" href="/css/components.css">
-    <link rel="stylesheet" href="/css/print.css" media="print">
-    
-    <!-- Fallback Tailwind CSS for immediate styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- jsPDF Library for PDF Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- Excel Export Library (SheetJS) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Inline Critical CSS for immediate rendering -->
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { background: #f8f9fa; padding: 1rem; border-bottom: 1px solid #dee2e6; }
-        .btn { padding: 0.5rem 1rem; border: 1px solid #ddd; background: white; cursor: pointer; }
-        .btn:hover { background: #f8f9fa; }
-        .nav-tabs { display: flex; border-bottom: 1px solid #ddd; margin-bottom: 1rem; }
-        .nav-tab { padding: 0.75rem 1.5rem; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; }
-        .nav-tab.active { border-bottom-color: #007bff; color: #007bff; }
-        .view { display: none; }
-        .view.active { display: block; }
-        .loading { text-align: center; padding: 2rem; color: #666; }
-        .invoice-preview { border: 1px solid #ddd; padding: 2rem; margin: 1rem 0; background: white; }
-        .btn-primary { background: #007bff; color: white; border-color: #007bff; }
-        .btn-secondary { background: #6c757d; color: white; border-color: #6c757d; }
-        .nav-btn { margin: 0 0.5rem; padding: 0.5rem 1rem; background: none; border: none; cursor: pointer; }
-        .nav-btn.active { background: #007bff; color: white; }
-    </style>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/print.css" media="print">
+    <!-- PDF Export Library with fallback -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" onerror="loadHtml2pdfFallback()"></script>
+    <script>
+        function loadHtml2pdfFallback() {
+            // Fallback CDN
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';
+            fallbackScript.onerror = function() {
+                console.warn('html2pdf library failed to load from both CDNs. PDF export will use print fallback.');
+            };
+            document.head.appendChild(fallbackScript);
+        }
+    </script>
 </head>
 <body>
     <div id="app">
@@ -63,13 +46,13 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <!-- Dashboard View -->
-            <section id="dashboard-view" class="view active">
+            <section id="dashboard-view" class="view">
                 <div class="container">
                     <div class="view-header">
                         <h2>Dashboard</h2>
                         <div class="view-actions">
                             <button class="btn btn-outline" id="import-json-btn">Import JSON</button>
-                            <button class="btn btn-outline" id="export-excel-btn">Export Excel</button>
+                            <button class="btn btn-outline" id="export-json-btn">Export JSON</button>
                             <button class="btn btn-primary" data-view="builder">New Invoice</button>
                         </div>
                     </div>

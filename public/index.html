@@ -21,6 +21,8 @@
             document.head.appendChild(fallbackScript);
         }
     </script>
+    <!-- SheetJS (xlsx) for true Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -50,8 +52,10 @@
                     <div class="view-header">
                         <h2>Dashboard</h2>
                         <div class="view-actions">
-                            <button class="btn btn-outline" id="import-json-btn">Import Excel</button>
-                            <button class="btn btn-outline" id="export-json-btn">Export Excel</button>
+                            <div class="btn-group">
+                                <button class="btn btn-outline" id="export-excel-btn">Export Excel</button>
+                                <button class="btn btn-outline" id="export-sheets-btn">Export to Google Sheets</button>
+                            </div>
                             <button class="btn btn-primary" data-view="builder">New Invoice</button>
                         </div>
                     </div>

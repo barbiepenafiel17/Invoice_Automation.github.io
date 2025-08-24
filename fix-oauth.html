@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Fix Google OAuth Authorization Error</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-red-50 font-sans">
+    <div class="max-w-4xl mx-auto p-8">
+        <!-- Error Alert -->
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            <div class="flex items-center">
+                <div class="text-2xl mr-3">⚠️</div>
+                <div>
+                    <strong class="font-bold">OAuth Error Detected!</strong>
+                    <span class="block sm:inline">Error 400: origin_mismatch - Authorization configuration needs to be updated.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">🔧 Fix Google OAuth Configuration</h1>
+            <p class="text-lg text-gray-600">Step-by-step guide to resolve the authorization error</p>
+        </div>
+
+        <!-- Quick Fix Steps -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8 border-l-4 border-blue-500">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">🚀 Quick Fix - Update Google Cloud Console</h2>
+            
+            <div class="space-y-6">
+                <div class="flex items-start space-x-4">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">1</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Go to Google Cloud Console</h3>
+                        <p class="text-gray-600 mb-2">Visit: <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-blue-600 hover:underline">https://console.cloud.google.com/apis/credentials</a></p>
+                        <p class="text-sm text-gray-500">Make sure you're in the correct project where your OAuth client was created.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-4">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">2</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Find Your OAuth 2.0 Client</h3>
+                        <p class="text-gray-600 mb-2">Look for client ID: <code class="bg-gray-100 px-2 py-1 rounded text-sm">807836831871-ebf8m8pg46h23f611tcscjk9t7cm0km2.apps.googleusercontent.com</code></p>
+                        <p class="text-sm text-gray-500">Click on the pencil/edit icon next to your OAuth client.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-4">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">3</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Update Authorized JavaScript Origins</h3>
+                        <p class="text-gray-600 mb-2">Add these exact URLs to the "Authorized JavaScript origins" section:</p>
+                        <div class="bg-gray-100 p-3 rounded">
+                            <div class="font-mono text-sm space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span>http://localhost:8000</span>
+                                    <button onclick="copyToClipboard('http://localhost:8000')" class="text-blue-600 hover:text-blue-800 text-xs">Copy</button>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span>http://127.0.0.1:8000</span>
+                                    <button onclick="copyToClipboard('http://127.0.0.1:8000')" class="text-blue-600 hover:text-blue-800 text-xs">Copy</button>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span>http://localhost:3000</span>
+                                    <button onclick="copyToClipboard('http://localhost:3000')" class="text-blue-600 hover:text-blue-800 text-xs">Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-4">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">4</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Update Authorized Redirect URIs</h3>
+                        <p class="text-gray-600 mb-2">Add these URLs to the "Authorized redirect URIs" section:</p>
+                        <div class="bg-gray-100 p-3 rounded">
+                            <div class="font-mono text-sm space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span>http://localhost:8000/auth/callback</span>
+                                    <button onclick="copyToClipboard('http://localhost:8000/auth/callback')" class="text-blue-600 hover:text-blue-800 text-xs">Copy</button>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span>http://localhost:3000/auth/callback</span>
+                                    <button onclick="copyToClipboard('http://localhost:3000/auth/callback')" class="text-blue-600 hover:text-blue-800 text-xs">Copy</button>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span>http://127.0.0.1:8000/auth/callback</span>
+                                    <button onclick="copyToClipboard('http://127.0.0.1:8000/auth/callback')" class="text-blue-600 hover:text-blue-800 text-xs">Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-4">
+                    <div class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">5</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Save Configuration</h3>
+                        <p class="text-gray-600 mb-2">Click "Save" at the bottom of the form.</p>
+                        <p class="text-sm text-gray-500">Changes may take a few minutes to propagate.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alternative Testing Method -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8 border-l-4 border-yellow-500">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">🔄 Alternative: Test Without OAuth</h2>
+            
+            <p class="text-gray-600 mb-4">While you're setting up OAuth, you can test the app functionality without Google Sign-In:</p>
+            
+            <div class="space-y-4">
+                <div class="bg-yellow-50 p-4 rounded">
+                    <h3 class="font-semibold text-yellow-800 mb-2">Option 1: Use Regular Login</h3>
+                    <p class="text-sm text-yellow-700">The app includes a fallback login system for testing purposes.</p>
+                    <button onclick="testWithoutOAuth()" class="mt-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded text-sm">
+                        Test App Features
+                    </button>
+                </div>
+                
+                <div class="bg-blue-50 p-4 rounded">
+                    <h3 class="font-semibold text-blue-800 mb-2">Option 2: Direct API Testing</h3>
+                    <p class="text-sm text-blue-700">Test the backend API directly to verify all functionality.</p>
+                    <a href="http://localhost:3000/api/health" target="_blank" class="mt-2 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                        Test API Endpoints
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Configuration -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8 border-l-4 border-gray-500">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">📋 Current Configuration</h2>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-4 rounded">
+                    <h3 class="font-semibold text-gray-800 mb-2">Your OAuth Client</h3>
+                    <p class="text-sm text-gray-600 mb-1"><strong>Client ID:</strong></p>
+                    <p class="font-mono text-xs text-gray-700 bg-white p-2 rounded">807836831871-ebf8m8pg46h23f611tcscjk9t7cm0km2.apps.googleusercontent.com</p>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded">
+                    <h3 class="font-semibold text-gray-800 mb-2">Current URLs</h3>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <p><strong>Frontend:</strong> http://localhost:8000</p>
+                        <p><strong>Backend:</strong> http://localhost:3000</p>
+                        <p><strong>Status:</strong> <span class="text-green-600">✅ Running</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Check -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">🔍 Test After Configuration</h2>
+            <p class="mb-4">After updating your Google Cloud Console configuration, test the OAuth sign-in:</p>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+                <a href="http://localhost:8000" target="_blank" class="block bg-white bg-opacity-20 hover:bg-opacity-30 text-center py-3 px-4 rounded transition-colors">
+                    🎨 Test Frontend App
+                </a>
+                <button onclick="checkOAuthStatus()" class="bg-white bg-opacity-20 hover:bg-opacity-30 py-3 px-4 rounded transition-colors">
+                    🔐 Check OAuth Status
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-500">
+            <p class="text-sm">Need help? The OAuth configuration should resolve the authorization error.</p>
+            <p class="text-xs mt-2">After making changes, wait 2-3 minutes for Google's servers to update.</p>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Show a temporary success message
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.className = 'text-green-600 hover:text-green-800 text-xs';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.className = 'text-blue-600 hover:text-blue-800 text-xs';
+                }, 1500);
+            });
+        }
+
+        function testWithoutOAuth() {
+            alert('Opening app for testing without OAuth. You can test invoice creation, client management, and PDF export features.');
+            window.open('http://localhost:8000', '_blank');
+        }
+
+        function checkOAuthStatus() {
+            // This will attempt to initialize Google Sign-In and report any errors
+            alert('After updating Google Cloud Console, refresh the main app and try signing in again. The origin_mismatch error should be resolved.');
+        }
+    </script>
+</body>
+</html>

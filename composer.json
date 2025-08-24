@@ -1,0 +1,15 @@
+{
+    "name": "invoice-automation/email-service",
+    "description": "Email service for Invoice Automation app",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "InvoiceAutomation\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

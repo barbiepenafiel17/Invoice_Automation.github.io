@@ -40,7 +40,7 @@ export class Dashboard {
      */
     bindEvents() {
         // Export/Import actions
-        document.getElementById('export-json-btn')?.addEventListener('click', this.handleExportJSON.bind(this));
+        // Excel export is now handled in app.js with button id="export-excel-btn"
         document.getElementById('import-json-btn')?.addEventListener('click', this.handleImportJSON.bind(this));
         
         // File input for JSON import

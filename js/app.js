@@ -48,6 +48,10 @@ class App {
      * Bind global event listeners
      */
     bindEvents() {
+        // Excel Export
+        document.getElementById('export-excel-btn')?.addEventListener('click', () => this.exportRecentInvoicesToExcel());
+        document.getElementById('export-sheets-btn')?.addEventListener('click', () => this.exportToGoogleSheets());
+        
         // Navigation
         document.querySelectorAll('.nav-btn, [data-view]').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -510,39 +514,109 @@ class App {
         console.error('Application error:', error);
         toast.error('An unexpected error occurred. Please refresh the page if problems persist.');
     }
-}
 
-// --- Export Recent Invoices Table to Excel ---
-function exportRecentInvoicesToExcel() {
-    const table = document.getElementById('invoices-table');
-    if (!table) {
-        alert('No invoices table found!');
-        return;
-    }
-    // Get headers
-    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
-    // Get visible rows
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
-    const data = [headers];
-    rows.forEach(row => {
-        const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
-        data.push(cells);
-    });
-    // Use SheetJS to create a worksheet and workbook
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Recent Invoices');
-    // Export to .xlsx file
-    XLSX.writeFile(wb, 'Recent_Invoices.xlsx');
-}
+    /**
+     * Export Recent Invoices Table to Excel (.xlsx)
+     */
+    exportRecentInvoicesToExcel() {
+        try {
+            // Check if XLSX is available
+            if (typeof XLSX === 'undefined') {
+                toast.error('Excel export library not loaded. Please refresh the page and try again.');
+                return;
+            }
 
-// Attach to Export Excel button
-window.addEventListener('DOMContentLoaded', () => {
-    const exportExcelBtn = document.getElementById('export-json-btn');
-    if (exportExcelBtn) {
-        exportExcelBtn.addEventListener('click', exportRecentInvoicesToExcel);
+            const table = document.getElementById('invoices-table');
+            if (!table) {
+                alert('No invoices table found!');
+                return;
+            }
+
+            // Get headers (excluding Actions column)
+            const headers = Array.from(table.querySelectorAll('thead th'))
+                .map(th => th.innerText.trim())
+                .filter(text => text !== 'Actions');
+
+            // Get visible rows
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            const data = [headers];
+            
+            rows.forEach(row => {
+                // Get all cells except the last one (Actions column)
+                const cells = Array.from(row.querySelectorAll('td'))
+                    .slice(0, -1)
+                    .map(td => td.innerText.trim());
+                data.push(cells);
+            });
+
+            // Create worksheet with proper formatting
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Set column widths
+            const colWidths = [15, 20, 15, 15, 15, 15];
+            ws['!cols'] = colWidths.map(width => ({ width }));
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Recent Invoices');
+            
+            // Export to .xlsx file
+            XLSX.writeFile(wb, 'Recent_Invoices.xlsx');
+            
+            toast.success('Excel file downloaded successfully!');
+        } catch (error) {
+            console.error('Excel export failed:', error);
+            toast.error('Failed to export Excel file. ' + error.message);
+        }
     }
-});
+
+    /**
+     * Export Recent Invoices Table to Google Sheets
+     */
+    exportToGoogleSheets() {
+        try {
+            const table = document.getElementById('invoices-table');
+            if (!table) {
+                alert('No invoices table found!');
+                return;
+            }
+
+            // Get headers (excluding Actions column)
+            const headers = Array.from(table.querySelectorAll('thead th'))
+                .map(th => th.innerText.trim())
+                .filter(text => text !== 'Actions');
+
+            // Get visible rows
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            const data = [headers];
+            
+            rows.forEach(row => {
+                // Get all cells except the last one (Actions column)
+                const cells = Array.from(row.querySelectorAll('td'))
+                    .slice(0, -1)
+                    .map(td => td.innerText.trim());
+                data.push(cells);
+            });
+
+            // Create CSV content
+            const csvContent = data.map(row => row.join(',')).join('\\n');
+            
+            // Encode data to be used as URL parameter
+            const encodedData = encodeURIComponent(csvContent);
+            
+            // Google Sheets import URL
+            const googleSheetsUrl = `https://docs.google.com/spreadsheets/d/1/edit#gid=0&range=A1&paste=${encodedData}`;
+            
+            // Open in new tab
+            window.open(googleSheetsUrl, '_blank');
+            
+            toast.success('Data ready for Google Sheets. Paste data in the opened Google Sheet!');
+        } catch (error) {
+            console.error('Google Sheets export failed:', error);
+            toast.error('Failed to export to Google Sheets. ' + error.message);
+        }
+    }
+}
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

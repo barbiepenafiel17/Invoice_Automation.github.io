@@ -11,41 +11,57 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Check if PHPMailer is available
-if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-    // Try to include Composer autoload
-    $autoloadPaths = [
-        __DIR__ . '/vendor/autoload.php',
-        __DIR__ . '/../vendor/autoload.php',
-        __DIR__ . '/../../vendor/autoload.php'
-    ];
-    
-    $autoloadFound = false;
-    foreach ($autoloadPaths as $path) {
-        if (file_exists($path)) {
-            require_once $path;
-            $autoloadFound = true;
-            break;
-        }
-    }
-    
-    if (!$autoloadFound) {
-        echo json_encode([
-            'success' => false, 
-            'error' => 'PHPMailer not found. Please install it using: composer require phpmailer/phpmailer',
-            'installation_guide' => [
-                'step1' => 'Open terminal in your project directory',
-                'step2' => 'Run: composer require phpmailer/phpmailer',
-                'step3' => 'Or download PHPMailer manually and include the files'
-            ]
-        ]);
-        exit;
+// Try to include Composer autoload
+$autoloadPaths = [
+    __DIR__ . '/vendor/autoload.php',
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../vendor/autoload.php'
+];
+
+$autoloadFound = false;
+foreach ($autoloadPaths as $path) {
+    if (file_exists($path)) {
+        require_once $path;
+        $autoloadFound = true;
+        break;
     }
 }
 
+// Check if PHPMailer is available
+if (!$autoloadFound) {
+    // Manual inclusion of PHPMailer if autoload failed
+    $phpmailerPaths = [
+        __DIR__ . '/PHPMailer/src/',
+        __DIR__ . '/vendor/phpmailer/phpmailer/src/'
+    ];
+    
+    foreach ($phpmailerPaths as $path) {
+        if (file_exists($path . 'PHPMailer.php')) {
+            require_once $path . 'PHPMailer.php';
+            require_once $path . 'SMTP.php';
+            require_once $path . 'Exception.php';
+            break;
+        }
+    }
+}
+
+// Move use statements before class_exists check
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
+
+if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+    echo json_encode([
+        'success' => false, 
+        'error' => 'PHPMailer not found. Please install it using: composer require phpmailer/phpmailer',
+        'installation_guide' => [
+            'step1' => 'Open terminal in your project directory',
+            'step2' => 'Run: composer require phpmailer/phpmailer',
+            'step3' => 'Or download PHPMailer manually and include the files'
+        ]
+    ]);
+    exit;
+}
 
 try {
     // Get form data
@@ -57,7 +73,7 @@ try {
     
     // Validate required fields
     if (empty($fromEmail) || empty($appPassword) || empty($toEmail) || empty($subject) || empty($message)) {
-        throw new Exception('All fields are required');
+        throw new \Exception('All fields are required');
     }
     
     // Validate email addresses
@@ -74,7 +90,7 @@ try {
     $mail->SMTPAuth = true;
     $mail->Username = $fromEmail;
     $mail->Password = $appPassword;
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->SMTPSecure = 'tls';  // Or use 'ssl' for port 465
     $mail->Port = 587;
     
     // Recipients
@@ -131,7 +147,7 @@ try {
         'message' => 'Email sent successfully'
     ]);
     
-} catch (Exception $e) {
+} catch (\Exception $e) {
     error_log("Email sending error: " . $e->getMessage());
     
     $errorMessage = $e->getMessage();

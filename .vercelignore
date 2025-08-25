@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Development files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+
+# PHP files (since we're using Node.js now)
+*.php
+vendor/
+composer.json
+composer.lock
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# XAMPP specific files
+.htaccess
+
+# Server directory (if it exists separately)
+server/
+
+# Test files
+test-*
+*test*
